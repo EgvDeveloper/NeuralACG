@@ -68,7 +68,11 @@ She observes, understands, predicts, and reacts—operating like a player with s
 
 ---
 
-# **4. How She Sees**
+# **4. How She Sees the World**
+
+<img width="1386" height="695" alt="image" src="https://github.com/user-attachments/assets/98425f84-72e5-4baa-8afe-68d2cebeaeb3" />
+
+<img width="1597" height="862" alt="image" src="https://github.com/user-attachments/assets/41256d83-25bd-48b3-a745-6a9438dd92d7" />
 
 Visual perception uses the **V-Spectrum Engine**, split into:
 
