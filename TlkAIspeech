@@ -1,0 +1,213 @@
+# neuralacg_lbn_structure.py
+
+from __future__ import annotations
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
+import json
+import logging
+import random
+import uuid
+import math
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("neuralacg.lbn")
+
+def generate_id(prefix: str = "obj") -> str:
+    return f"{prefix}_{uuid.uuid4().hex[:8]}"
+
+# ---------------------------------------------------------------------------
+# Data Structures
+# ---------------------------------------------------------------------------
+
+@dataclass
+class TokenizedUtterance:
+    tokens: List[str]
+    raw: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class SemanticFrame:
+    intents: List[Tuple[str, float]]
+    entities: Dict[str, Any]
+    discourse_role: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class Intention:
+    name: str
+    confidence: float
+    parameters: Dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class EmotionalTone:
+    primary: str
+    intensity: float
+    modifiers: List[str] = field(default_factory=list)
+
+@dataclass
+class GrammarSpec:
+    complexity: float
+    register: str
+    syntactic_variations: List[str] = field(default_factory=list)
+
+@dataclass
+class GeneratedUtterance:
+    text: str
+    tokens: List[str]
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+# ---------------------------------------------------------------------------
+# Personality and Consistency
+# ---------------------------------------------------------------------------
+
+@dataclass
+class PersonalityProfile:
+    name: str = "Zarna"
+    age: Optional[int] = None
+    core_values: Dict[str, float] = field(default_factory=lambda: {
+        "gentleness": 0.9,
+        "expressiveness": 0.85,
+        "introspection": 0.95,
+        "openness": 0.8,
+    })
+    default_tone: str = "gentle"
+
+    def clamp_value(self, key: str, value: float) -> float:
+        return max(0.0, min(1.0, value))
+
+class ConsistencyChecker:
+    def __init__(self, profile: PersonalityProfile):
+        self.profile = profile
+
+    def score(self, utterance: GeneratedUtterance) -> float:
+        text = utterance.text.lower()
+        score = 0.5
+        introspective_markers = ["i think", "i feel", "sometimes", "maybe", "i wonder"]
+        for m in introspective_markers:
+            if m in text:
+                score += 0.08
+        harsh_markers = ["hate", "stupid", "idiot", "shut up", "kill"]
+        for m in harsh_markers:
+            if m in text:
+                score -= 0.4
+        if "..." in text or "," in text:
+            score += 0.05
+        return max(0.0, min(1.0, score))
+
+    def check_and_patch(self, utterance: GeneratedUtterance) -> GeneratedUtterance:
+        s = self.score(utterance)
+        if s < 0.4:
+            patched = utterance.text
+            patched = patched.replace("hate", "dislike")
+            patched = patched.replace("stupid", "unpleasant")
+            utterance.text = patched
+            utterance.metadata.setdefault("consistency_patch", True)
+        return utterance
+
+# ---------------------------------------------------------------------------
+# Core Components
+# ---------------------------------------------------------------------------
+
+class SemanticParser:
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
+
+    def parse(self, utterance: str, context: Dict[str, Any] = None) -> SemanticFrame:
+        context = context or {}
+        tokens = utterance.lower().split()
+        intents = []
+        entities = {}
+        if any(w in tokens for w in ['help', 'how', 'can', 'could']):
+            intents.append(('request_info', 0.6))
+        if any(w in tokens for w in ['hello', 'hi', 'hey']):
+            intents.append(('greeting', 0.9))
+        if any(w in tokens for w in ['sorry', 'apologize']):
+            intents.append(('apology', 0.8))
+        if not intents:
+            intents.append(('statement', 0.6))
+        frame = SemanticFrame(intents=intents, entities=entities)
+        frame.metadata['raw_tokens'] = tokens
+        return frame
+
+class IntentionMapper:
+    def __init__(self, policy: Optional[Dict[str, Any]] = None):
+        self.policy = policy or {}
+
+    def map(self, frame: SemanticFrame, context: Dict[str, Any] = None) -> List[Intention]:
+        context = context or {}
+        intentions = []
+        for name, conf in frame.intents:
+            priority = conf
+            if name == 'greeting':
+                priority += 0.1
+            if name == 'apology':
+                priority += 0.05
+            intentions.append(Intention(name=name, confidence=priority))
+        total = sum(i.confidence for i in intentions) or 1.0
+        for i in intentions:
+            i.confidence = i.confidence / total
+        return intentions
+
+class EmotionalToneSelector:
+    DEFAULT_TONES = [
+        'gentle', 'warm', 'melancholic', 'curious', 'playful', 'calm', 'somber'
+    ]
+
+    def __init__(self, personality: PersonalityProfile):
+        self.personality = personality
+        self.recent_tones: List[EmotionalTone] = []
+
+    def select(self, intentions: List[Intention], context: Dict[str, Any] = None) -> EmotionalTone:
+        context = context or {}
+        intros = self.personality.core_values.get('introspection', 0.5)
+        express = self.personality.core_values.get('expressiveness', 0.5)
+        weights = []
+        candidates = self.DEFAULT_TONES
+        for t in candidates:
+            w = 0.1
+            if t == 'gentle': w += intros * 0.6 + express * 0.2
+            if t == 'warm': w += express * 0.4
+            if t == 'melancholic': w += intros * 0.5
+            if t == 'curious': w += 0.2
+            if t == 'playful': w += (1 - intros) * 0.4
+            weights.append(w)
+        s = sum(weights) or 1.0
+        probs = [w / s for w in weights]
+        choice = random.choices(candidates, probs, k=1)[0]
+        intensity = min(1.0, 0.3 + express * 0.5)
+        tone = EmotionalTone(primary=choice, intensity=intensity)
+        self.recent_tones.append(tone)
+        if len(self.recent_tones) > 20:
+            self.recent_tones.pop(0)
+        return tone
+
+class AdaptiveGrammarSynthesizer:
+    def __init__(self, personality: PersonalityProfile):
+        self.personality = personality
+
+    def synthesize(self,
+                   intentions: List[Intention],
+                   tone: EmotionalTone,
+                   context: Dict[str, Any] = None) -> GrammarSpec:
+        context = context or {}
+        complexity = 0.3
+        register = 'informal'
+        if tone.primary in ('melancholic', 'somber'):
+            complexity += 0.15
+            register = 'softly_formal'
+        if tone.primary in ('playful', 'curious'):
+            complexity += 0.05
+        for it in intentions:
+            if it.name in ('request_info', 'statement'):
+                complexity += 0.05 * it.confidence
+            if it.name == 'greeting':
+                complexity -= 0.05
+        complexity = max(0.0, min(1.0, complexity))
+        return GrammarSpec(
+            complexity=complexity,
+            register=register,
+            syntactic_variations=['subordinate_clauses'] if complexity > 0.5 else []
+        )
+
+    def realize_text(self,
+                     semantic: SemanticFrame,
