@@ -1,0 +1,348 @@
+```python
+import time
+import math
+import random
+import json
+import threading
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Tuple, Optional
+
+@dataclass
+class Observation:
+    image: Any = None
+    state: List[float] = field(default_factory=list)
+    text: str = ""
+
+@dataclass
+class Action:
+    control: Dict[str, float] = field(default_factory=dict)
+    text: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+class VisionEncoderStub:
+    def __init__(self, seed: int = 0):
+        self.seed = seed
+        random.seed(seed)
+        self.dim = 128
+
+    def encode(self, frame: Any) -> List[float]:
+        base = hash(str(frame)) % 100000 if frame is not None else 0
+        rnd = random.Random(base + self.seed)
+        return [rnd.uniform(-1.0, 1.0) for _ in range(self.dim)]
+
+class TextEncoderStub:
+    def __init__(self, vocab_size: int = 10000):
+        self.vocab_size = vocab_size
+
+    def encode(self, text: str) -> List[int]:
+        tokens = text.lower().split()
+        return [hash(t) % self.vocab_size for t in tokens][:64]
+
+class Perception:
+    def __init__(self):
+        self.vision = VisionEncoderStub(seed=42)
+        self.text = TextEncoderStub()
+
+    def process(self, frame: Any, state: Dict[str, Any], ui_text: str) -> Observation:
+        img_feats = self.vision.encode(frame)
+        state_vec = [float(v) for v in state.values()] if state else []
+        text_str = ui_text or ""
+        return Observation(image=img_feats, state=state_vec, text=text_str)
+
+class SimWorld:
+    def __init__(self, seed: int = 0, bounds: float = 10.0):
+        self.seed = seed
+        self.bounds = bounds
+        self.reset()
+
+    def reset(self):
+        random.seed(self.seed)
+        self.step_count = 0
+        self.agent_pos = [0.0, 0.0]
+        self.goal_pos = [random.uniform(-self.bounds, self.bounds), random.uniform(-self.bounds, self.bounds)]
+        self.objects = [{"id": i, "pos": [random.uniform(-self.bounds, self.bounds), random.uniform(-self.bounds, self.bounds)]} for i in range(10)]
+        return Observation(image="init_frame", state=[*self.agent_pos, *self.goal_pos], text="")
+
+    def step(self, action: Action) -> Tuple[Observation, float, bool, Dict]:
+        dx = float(action.control.get("dx", 0.0))
+        dy = float(action.control.get("dy", 0.0))
+        self.agent_pos[0] += dx
+        self.agent_pos[1] += dy
+        self.step_count += 1
+        dist = math.hypot(self.agent_pos[0] - self.goal_pos[0], self.agent_pos[1] - self.goal_pos[1])
+        reward = -dist
+        done = False
+        if dist < 0.5:
+            reward += 100.0
+            done = True
+        if self.step_count > 1000:
+            done = True
+        obs = Observation(image=f"frame_{self.step_count}", state=[*self.agent_pos, *self.goal_pos], text="")
+        info = {"dist": dist, "step": self.step_count}
+        return obs, reward, done, info
+
+class ReplayBuffer:
+    def __init__(self, capacity: int = 100000):
+        self.capacity = capacity
+        self.buffer: List[Tuple[Observation, Action, float, Observation, bool]] = []
+        self.lock = threading.Lock()
+
+    def add(self, o: Observation, a: Action, r: float, o2: Observation, done: bool):
+        with self.lock:
+            if len(self.buffer) >= self.capacity:
+                self.buffer.pop(0)
+            self.buffer.append((o, a, r, o2, done))
+
+    def sample(self, batch_size: int = 64) -> List[Tuple[Observation, Action, float, Observation, bool]]:
+        with self.lock:
+            return random.sample(self.buffer, min(batch_size, len(self.buffer)))
+
+class PolicyStub:
+    def __init__(self, seed: int = 0):
+        self.seed = seed
+        random.seed(seed)
+        self.param = random.random()
+
+    def act(self, obs: Observation, deterministic: bool = False) -> Action:
+        feat_sum = sum(obs.image) if obs.image else sum(obs.state) if obs.state else 0.0
+        rnd = random.Random(int(feat_sum * 1000) + int(self.seed * 100))
+        dx = math.tanh((feat_sum % 1.0) * 2 - 1) * 0.7 + rnd.uniform(-0.05, 0.05)
+        dy = math.tanh(((feat_sum * 1.31) % 1.0) * 2 - 1) * 0.7 + rnd.uniform(-0.05, 0.05)
+        return Action(control={"dx": dx, "dy": dy}, text=None, metadata={"policy_seed": self.seed, "param": self.param})
+
+    def update(self, grads: Dict[str, float]):
+        self.param += grads.get("param_delta", 0.0)
+        self.seed = (self.seed + 1) % 100000
+
+class Planner:
+    def __init__(self):
+        self.history: List[Action] = []
+
+    def plan(self, obs: Observation, horizon: int = 8) -> List[Action]:
+        plan = []
+        base = sum(obs.state) if obs.state else sum(obs.image) if obs.image else 0.0
+        rnd = random.Random(int(base) % 1000)
+        for _ in range(horizon):
+            dx = rnd.uniform(-0.2, 0.2)
+            dy = rnd.uniform(-0.2, 0.2)
+            plan.append(Action(control={"dx": dx, "dy": dy}))
+        self.history.extend(plan)
+        return plan
+
+class DialogueAgent:
+    def __init__(self):
+        self.history: List[Tuple[str, str]] = []
+        self.templates = [
+            "Hello. How can I assist?",
+            "I can provide guidance in this environment.",
+            "Please clarify your request."
+        ]
+
+    def respond(self, text: str) -> str:
+        self.history.append(("user", text))
+        low = text.lower()
+        if "hello" in low or "hi" in low:
+            resp = self.templates[0]
+        elif "help" in low or "assist" in low:
+            resp = self.templates[1]
+        else:
+            resp = self.templates[2]
+        self.history.append(("bot", resp))
+        return resp
+
+class Safety:
+    def __init__(self):
+        self.blocked = ["exploit", "hack", "bypass", "roblox"]
+
+    def text_ok(self, text: str) -> bool:
+        t = text.lower()
+        for b in self.blocked:
+            if b in t:
+                return False
+        return True
+
+    def action_ok(self, action: Action) -> bool:
+        dx = abs(action.control.get("dx", 0.0))
+        dy = abs(action.control.get("dy", 0.0))
+        if dx > 2.0 or dy > 2.0:
+            return False
+        return True
+
+class BrowserStub:
+    def __init__(self):
+        self.connected = False
+
+    def connect(self, token: Optional[str] = None):
+        if token:
+            self.connected = True
+        return self.connected
+
+    def snapshot(self, url: str) -> str:
+        return "<simulated_page/>"
+
+    def click(self, selector: str):
+        return True
+
+    def type(self, selector: str, text: str):
+        return True
+
+class Trainer:
+    def __init__(self, env: SimWorld, perception: Perception, policy: PolicyStub, buffer: ReplayBuffer, safety: Safety):
+        self.env = env
+        self.perception = perception
+        self.policy = policy
+        self.buffer = buffer
+        self.safety = safety
+        self.episode = 0
+        self.metrics: List[Dict[str, float]] = []
+
+    def rollout(self, max_steps: int = 200):
+        obs_raw = self.env.reset()
+        total_reward = 0.0
+        for step in range(max_steps):
+            obs = self.perception.process(frame=obs_raw.image, state={"px": obs_raw.state[0]} if obs_raw.state else {}, ui_text=obs_raw.text)
+            action = self.policy.act(obs)
+            if not self.safety.action_ok(action):
+                action.control["dx"] = max(min(action.control.get("dx", 0.0), 1.0), -1.0)
+                action.control["dy"] = max(min(action.control.get("dy", 0.0), 1.0), -1.0)
+            obs_next, reward, done, info = self.env.step(action)
+            self.buffer.add(obs, action, reward, obs_next, done)
+            total_reward += reward
+            obs_raw = obs_next
+            if done:
+                break
+        self.episode += 1
+        self.metrics.append({"episode": self.episode, "reward": total_reward})
+        return total_reward
+
+    def update_policy_from_buffer(self, batch_size: int = 64):
+        batch = self.buffer.sample(batch_size)
+        if not batch:
+            return
+        loss = 0.0
+        for o, a, r, o2, d in batch:
+            loss += -r
+        grads = {"param_delta": -loss * 1e-4}
+        self.policy.update(grads)
+
+    def train(self, episodes: int = 100, steps_per_episode: int = 200):
+        for _ in range(episodes):
+            r = self.rollout(max_steps=steps_per_episode)
+            self.update_policy_from_buffer()
+        return self.metrics
+
+class DatasetGenerator:
+    def __init__(self, env_seed: int = 7):
+        self.env_seed = env_seed
+
+    def generate(self, n: int = 1000) -> List[Dict[str, Any]]:
+        data = []
+        env = SimWorld(seed=self.env_seed)
+        for i in range(n):
+            o = env.reset()
+            a = Action(control={"dx": random.uniform(-0.1, 0.1), "dy": random.uniform(-0.1, 0.1)})
+            o2, r, d, info = env.step(a)
+            data.append({"obs": o, "action": a, "reward": r, "next": o2, "done": d})
+        return data
+
+class ModelSerializer:
+    def save(self, policy: PolicyStub, path: str):
+        meta = {"seed": policy.seed, "param": policy.param}
+        with open(path, "w") as f:
+            json.dump(meta, f)
+
+    def load(self, path: str) -> PolicyStub:
+        with open(path, "r") as f:
+            meta = json.load(f)
+        p = PolicyStub(seed=meta.get("seed", 0))
+        p.param = meta.get("param", p.param)
+        return p
+
+class Monitor:
+    def __init__(self):
+        self.logs: List[str] = []
+
+    def log(self, message: str):
+        ts = time.time()
+        entry = f"{ts}: {message}"
+        self.logs.append(entry)
+
+    def dump(self) -> List[str]:
+        return list(self.logs)
+
+class MultiAgentSystem:
+    def __init__(self):
+        self.perception = Perception()
+        self.env = SimWorld(seed=123)
+        self.policy = PolicyStub(seed=1)
+        self.buffer = ReplayBuffer(capacity=50000)
+        self.safety = Safety()
+        self.trainer = Trainer(self.env, self.perception, self.policy, self.buffer, self.safety)
+        self.planner = Planner()
+        self.dialogue = DialogueAgent()
+        self.browser = BrowserStub()
+        self.monitor = Monitor()
+        self.serializer = ModelSerializer()
+        self.dataset_gen = DatasetGenerator(env_seed=99)
+
+    def tick(self):
+        r = self.trainer.rollout(max_steps=50)
+        self.monitor.log(f"tick_rollout_reward:{r}")
+        self.trainer.update_policy_from_buffer()
+        return r
+
+    def chat(self, text: str) -> str:
+        if not self.safety.text_ok(text):
+            return "Request blocked"
+        return self.dialogue.respond(text)
+
+    def plan_and_act(self):
+        o = self.env.reset()
+        obs = self.perception.process(frame=o.image, state={"px": o.state[0]} if o.state else {}, ui_text=o.text)
+        plan = self.planner.plan(obs, horizon=16)
+        total = 0.0
+        for a in plan:
+            if not self.safety.action_ok(a):
+                a.control["dx"] = max(min(a.control.get("dx", 0.0), 1.0), -1.0)
+                a.control["dy"] = max(min(a.control.get("dy", 0.0), 1.0), -1.0)
+            o, r, d, info = self.env.step(a)
+            total += r
+            if d:
+                break
+        self.monitor.log(f"plan_and_act_reward:{total}")
+        return total
+
+    def run_training_loop(self, cycles: int = 10, episodes_per_cycle: int = 5):
+        for c in range(cycles):
+            for e in range(episodes_per_cycle):
+                self.trainer.rollout(max_steps=200)
+            self.trainer.update_policy_from_buffer()
+            self.monitor.log(f"cycle_complete:{c}")
+
+    def save_policy(self, path: str = "policy.json"):
+        self.serializer.save(self.policy, path)
+
+    def generate_dataset(self, n: int = 500):
+        return self.dataset_gen.generate(n)
+
+def main():
+    mas = MultiAgentSystem()
+    mas.run_training_loop(cycles=3, episodes_per_cycle=3)
+    reward = mas.tick()
+    chat_reply = mas.chat("hello")
+    plan_reward = mas.plan_and_act()
+    dataset = mas.generate_dataset(10)
+    mas.save_policy("policy_out.json")
+    logs = mas.monitor.dump()
+    output = {
+        "tick_reward": reward,
+        "chat_reply": chat_reply,
+        "plan_reward": plan_reward,
+        "dataset_size": len(dataset),
+        "logs": logs
+    }
+    print(json.dumps(output, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
