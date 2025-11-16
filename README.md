@@ -16,6 +16,7 @@ The engine is not publicly released yet; it is an ongoing long-term project inte
 NeuralACG is designed to simulate cognition, perception, emotion, and autonomous action with high-level modularity and persistent personality. Zarna is the primary test entity running on this evolving engine.
 
 ---
+<img width="603" height="520" alt="image" src="https://github.com/user-attachments/assets/976d44a2-1dcf-403c-8470-943be7db6524" />
 
 # **1. Capabilities Overview**
 
