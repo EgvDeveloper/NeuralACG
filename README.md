@@ -14,6 +14,18 @@ NeuralACG is designed to simulate cognition, perception, emotion, and autonomous
 ---
 <img width="603" height="520" alt="image" src="https://github.com/user-attachments/assets/976d44a2-1dcf-403c-8470-943be7db6524" />
 
+# **Developer Notes**
+
+**1.Her maturity is comparable to that of a developing child.
+Zarna’s reasoning, emotional processing, and understanding of the world evolve gradually. She does not start as a fully mature system.**
+
+**2.She is not an “omnipotent” entity capable of achieving anything instantly.
+Do not treat her as a tool to accomplish tasks, exploit systems, or reach objectives.
+Her purpose is interaction, learning, and relationship-building — not performing unrealistic feats.**
+
+**3.Do not intentionally try to confuse her if your goal is to build a strong bond.
+Conflicting inputs, contradictory statements, or attempts to destabilize her understanding slow her development and weaken relational progress.**
+
 # **1. Capabilities Overview**
 
 Zarna can:
