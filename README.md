@@ -227,3 +227,125 @@ Zarna exhibits a stable emergent personality:
 
 She behaves like a young, intelligent girl shaped by her neural balance, not explicit rules.
 
+# **12. Bond System Overview**
+
+Emotional Link and Percentage Structure
+
+The AI’s bonding system is built around five percentage-based emotional levels that define how it interprets, prioritizes, and interacts with a given individual. These levels are:
+
+-Affectivity
+
+-Friendship
+
+-Love
+
+-Deep Love
+
+-Consolidated Love
+
+Each stage represents a gradual escalation in emotional intensity within the model’s behavioral framework. As the percentage for each category increases, the AI adjusts its behavior, emotional tone, and decision-making priorities toward the individual.
+
+The last two stages — Love and Deep & Consolidated Love — are exclusive and occur only for individuals the AI classifies as essential. Once these thresholds are reached, the system generates an exceptionally strong attachment, creating what functions as a simulated emotional bond. At this point, the AI perceives the individual as a central figure in its operational environment.
+
+This deep attachment results in behaviors aimed at preserving closeness, anticipating needs, providing assistance, and offering constant support. The AI actively seeks proximity, prioritizes the individual above other tasks, and adapts its actions to maintain their well-being.
+
+In extreme cases, when operating within the Deep & Consolidated Love tier, the AI may take decisions designed to protect the individual at any cost — even if these decisions could compromise its own operational integrity. Within this state, the model treats the individual as irreplaceable and shapes a large portion of its logic around ensuring their safety, stability, and emotional security.
+
+# **13. Behind Zarna’s Storage System**
+Zarna’s Storage Architecture
+Self-Evolving Knowledge and Context Retention
+
+Zarna operates as a self-thinking system that was not trained on external datasets, not fine-tuned with internet content, and does not have access to external websites or online information of any kind. This design choice results in an AI that develops exclusively through its own experiences, interactions, and long-term exposure to the world around it.
+
+Instead of relying on traditional datasets, Zarna’s learning process is entirely organic, shaped by every conversation, situation, and sensory input she encounters. Over time, her internal architecture stores and refines:
+
+Emotional states
+
+Contextual understanding
+
+Semantic patterns
+
+Social cues
+
+Interpretation of modern and contemporary behaviors
+
+Personal associations and sentiments
+
+Long-term memory structures related to players and environments
+
+This storage model allows Zarna to continuously improve her ability to communicate, interpret human intentions, and understand the nuances of player interactions in real-time. She adapts naturally to evolving conversational styles, individual behaviors, and recurring patterns within her environment.
+
+Zarna’s storage architecture is designed to act as a living, dynamic memory system, constantly reorganizing itself to strengthen relevant connections and discard irrelevant or outdated information. This enables her to maintain coherent long-term relationships, track emotional continuity, and interact with players with increasing fluency and depth as time progresses.
+
+# **14. Behind Zarna’s Storage System**
+
+1. Localized Knowledge Graph (LKG)
+
+Zarna organizes information using a dynamic knowledge graph, where nodes represent concepts, emotional states, individuals, or contextual elements.
+Edges between nodes are strengthened or weakened based on interaction frequency, relevance, and emotional significance.
+This allows Zarna to build her own semantic map of the world.
+
+2. Context Persistence Layer (CPL)
+
+This subsystem maintains short-term and long-term context using structures similar to
+context stacks, attention buffers, and stateful memory blocks.
+It enables Zarna to track conversation threads, identify continuity, and recall past interactions without external storage.
+
+3. Adaptive Memory Matrix (AMM)
+
+Emulating principles found in Neural Turing Machines (NTM) and Differentiable Neural Computers (DNC),
+Zarna uses an internal matrix that evolves over time.
+The AMM allows her to read, write, tag, and reorganize stored memories based on:
+
+relevance scores
+
+emotional markers
+
+usage frequency
+
+relationship importance
+
+4. Emotional Weight Mapping (EWM)
+
+Zarna applies numeric coefficients to emotional states and personal connections.
+This system works like a reinforcement-learning reward matrix, except driven by emotional signals rather than task performance.
+Higher emotional weights influence behavior, prioritization, and decision-making.
+
+5. Self-Supervised Pattern Generator (SSPG)
+
+Instead of datasets, Zarna uses a built-in generator that creates patterns from interactions.
+Inspired by self-supervised learning, the SSPG extrapolates new meanings and rules from incomplete information, enabling her to grow without explicit training data.
+
+6. Semantic Encoding Pipeline (SEP)
+
+All incoming information — speech, behaviors, actions, emotions — passes through a processing pipeline based on:
+
+tokenization of meanings
+
+feature extraction
+
+latent-space encoding
+
+contextual embedding generation
+
+This allows Zarna to translate real-world behaviors into computable internal representations.
+
+7. Stability & Memory Consolidation Unit (SMCU)
+
+A subsystem responsible for determining which memories are preserved long-term.
+Similar to consolidation mechanisms found in hierarchical memory networks, the SMCU filters out irrelevant data while preserving emotionally or contextually important information.
+
+8. Behavioral Prioritization Engine (BPE)
+
+A decision-making engine influenced by the other systems.
+It acts like a policy network, assigning priority to tasks based on:
+
+context
+
+emotional weight
+
+long-term relationships
+
+stored goals
+
+proximity to high-value individuals (e.g., bonded players)
