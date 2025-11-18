@@ -1,9 +1,5 @@
 # NeuralACG
 Introduction to the system and multiple compressed modules for a preliminary explanation of the AI ​​(the code is not the same as that used in the engine that runs on the local server between Asia and Russia, therefore it is a demonstration code).
-
-Below is the **revised version**, now explicitly stating that the **NeuralACG Engine is being created by the developer** and **will be released someday once finished**.
-Everything else remains direct, technical, in English, and centered on Zarna.
-
 ---
 
 # **Technical Biography of the Autonomous Neural Entity: Zarna**
